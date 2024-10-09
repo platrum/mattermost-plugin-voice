@@ -32,6 +32,7 @@ export default class PostType extends React.PureComponent {
           playing: false,
           played: false,
           progress: 0,
+          playbackRate: 1,
       };
   }
 
@@ -88,6 +89,8 @@ export default class PostType extends React.PureComponent {
           player,
           duration: pad2nozero(Math.round(duration) / 60) + ':' + pad2(Math.round(duration) % 60),
       });
+
+      player.playbackRate = this.state.playbackRate;
   }
 
   play = () => {
@@ -117,6 +120,19 @@ export default class PostType extends React.PureComponent {
 
       player.currentTime = seekTime;
       this.setState({player, progress});
+  }
+
+  changePlaybackRate = () => {
+      const rates = [1, 1.25, 1.5, 1.75, 2];
+      const currentIndex = rates.indexOf(this.state.playbackRate);
+      const nextIndex = (currentIndex + 1) % rates.length;
+      const newRate = rates[nextIndex];
+
+      this.setState({playbackRate: newRate}, () => {
+          if (this.state.player) {
+              this.state.player.playbackRate = newRate;
+          }
+      });
   }
 
   render() {
@@ -173,6 +189,12 @@ export default class PostType extends React.PureComponent {
           width: '12px',
       };
 
+      const playbackRateButton = (
+          <button onClick={this.changePlaybackRate} css={hoverCss} className='speed-button'>
+              {this.state.playbackRate}x
+          </button>
+      );
+
       return (
           <div>
               <div
@@ -194,6 +216,7 @@ export default class PostType extends React.PureComponent {
                       value={this.state.progress}
                   />
                   <span>{ playbackInfo }</span>
+                  {playbackRateButton}
               </div>
               <audio
                   id={'voice_' + post.id}
