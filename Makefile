@@ -150,6 +150,11 @@ endif
 
 	@echo plugin built at: dist/$(BUNDLE_NAME)
 
+## Builds and bundles the plugin inside docker
+.PHONY: dist-docker
+dist-docker:
+	DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -t plugin-builder -f Dockerfile . && docker run --rm -v "$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))":/app -v "/tmp/plugin-builder/go/path":/go -v "/tmp/plugin-builder/go/cache":/tmp/go/cache -w /app plugin-builder
+
 ## Builds and bundles the plugin.
 .PHONY: dist
 dist:	apply server webapp bundle
