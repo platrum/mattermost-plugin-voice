@@ -111,8 +111,9 @@ export default class Client {
                     send(data).
                     accept('application/json').then(resolve).catch((err) => {
                         if (attempt < 30) {
-                            setTimeout(5000);
-                            sendRecording(attempt + 1).then(resolve).catch(reject);
+                            setTimeout(() => {
+                                sendRecording(attempt + 1).then(resolve).catch(reject);
+                            }, 5000 * attempt);
                         } else {
                             removeFileFromLocalStorage(fileKey);
                             reject(err);
