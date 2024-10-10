@@ -208,6 +208,7 @@ clean:
 	rm -fr public/encoder.js
 	rm -fr public/encoder.wasm
 	rm -rf public/recorder.worker.js
+	rm -rf /tmp/plugin-builder
 ifneq ($(HAS_SERVER),)
 	rm -fr server/coverage.txt
 	rm -fr server/dist
