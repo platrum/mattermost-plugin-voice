@@ -19,7 +19,7 @@ const manifestStr = `
   "homepage_url": "https://github.com/streamer45/mattermost-plugin-voice",
   "support_url": "https://github.com/streamer45/mattermost-plugin-voice/issues",
   "release_notes_url": "https://github.com/streamer45/mattermost-plugin-voicereleases/tag/v0.3.0",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "min_server_version": "6.3.0",
   "server": {
     "executables": {
@@ -42,7 +42,7 @@ const manifestStr = `
         "type": "number",
         "help_text": "Max duration allowed (in seconds) for voice messages.",
         "placeholder": "",
-        "default": 300
+        "default": 3600
       },
       {
         "key": "VoiceAudioBitrate",

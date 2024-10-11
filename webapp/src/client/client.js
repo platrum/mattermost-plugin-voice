@@ -66,67 +66,110 @@ export default class Client {
     }
 
     _sendRecording({channelId, rootId, recording}) {
-        const recordFilename = `${new Date().getTime() - recording.duration}.mp3`;
+        const recordFilename = `${Date.now() - recording.duration}.mp3`;
 
-        const saveFileToLocalStorage = (file, filename) => {
+        const saveToLocalStorage = (filename, file) => {
             if (!localStorage.getItem(filename)) {
-                localStorage.setItem(filename, JSON.stringify(file));
+                blobToBase64(file).then(base64 => {
+                    localStorage.setItem(filename, base64);
+                });
             }
         };
 
-        const removeFileFromLocalStorage = (filename) => {
+        const removeFromLocalStorage = (filename) => {
             localStorage.removeItem(filename);
         };
 
-        const getFileFromLocalStorage = (filename) => {
-            const fileData = localStorage.getItem(filename);
-            return fileData ? JSON.parse(fileData) : null;
+        const getFromLocalStorage = (filename) => {
+            const base64Data = localStorage.getItem(filename);
+            return base64Data ? base64ToBlob(base64Data) : null;
         };
 
-        const sendRecording = (attempt) => {
-            return new Promise((resolve, reject) => {
-                const fileKey = `audioFile_${recordFilename}`;
-                const fileToSend = getFileFromLocalStorage(fileKey) || recording.blob;
-
-                request.
-                post(Client4.getFilesRoute()).
-                set(Client4.getOptions({method: 'post'}).headers).
-                attach('files', fileToSend, recordFilename).
-                field('channel_id', channelId).
-                accept('application/json').then((res) => {
-                    removeFileFromLocalStorage(fileKey);
-
-                    const data = {
-                        channel_id: channelId,
-                        root_id: rootId,
-                        message: 'Voice Message',
-                        type: 'custom_voice',
-                        props: {
-                            fileId: res.body.file_infos[0].id,
-                            duration: recording.duration,
-                        },
-                    };
-                    request.post(Client4.getPostsRoute()).
-                    set(Client4.getOptions({method: 'post'}).headers).
-                    send(data).
-                    accept('application/json').then(resolve).catch((err) => {
-                        if (attempt < 30) {
-                            setTimeout(() => {
-                                sendRecording(attempt + 1).then(resolve).catch(reject);
-                            }, 5000 * attempt);
-                        } else {
-                            removeFileFromLocalStorage(fileKey);
-                            reject(err);
-                        }
-                    });
-                }).catch(reject);
+        const blobToBase64 = (blob) => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    resolve(reader.result.split(',')[1]); // Возвращаем Base64 без `data:audio/mp3;base64,`
+                };
+                reader.readAsDataURL(blob);
             });
         };
 
-        const fileKey = `audioFile_${recordFilename}`;
-        saveFileToLocalStorage(recording.blob, fileKey);
+        const base64ToBlob = (base64) => {
+            const byteCharacters = atob(base64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            return new Blob([byteArray], {type: 'audio/mp3'});
+        };
 
-        return sendRecording(1);
+        const postAudioFile = (fileToSend) => {
+            return request.post(Client4.getFilesRoute()).
+                set(Client4.getOptions({method: 'post'}).headers).
+                attach('files', fileToSend, recordFilename).
+                field('channel_id', channelId).
+                accept('application/json').
+                then(res => res.body.file_infos[0].id).
+                catch(error => {
+                    throw new Error('Error uploading file: ' + error.message);
+                });
+        };
+
+        const postMessage = (fileId) => {
+            const messageData = {
+                channel_id: channelId,
+                root_id: rootId,
+                message: 'Voice Message',
+                type: 'custom_voice',
+                props: {
+                    fileId: fileId,
+                    duration: recording.duration,
+                },
+            };
+
+            return request.post(Client4.getPostsRoute()).
+                set(Client4.getOptions({method: 'post'}).headers).
+                send(messageData).
+                accept('application/json').
+                catch(error => {
+                    throw new Error('Error posting message: ' + error.message);
+                });
+        };
+
+        const fileKey = `audioFile_${recordFilename}`;
+
+        // Сохраняем запись в localStorage перед отправкой
+        saveToLocalStorage(fileKey, recording.blob);
+
+        const fileToSend = getFromLocalStorage(fileKey) || recording.blob;
+
+        let attempt = 0;
+        const maxAttempts = 30;
+
+        const performRequest = () => {
+            return postAudioFile(fileToSend).
+                then(fileId => {
+                    removeFromLocalStorage(fileKey);
+                    return postMessage(fileId);
+                }).
+                catch(error => {
+                    if (attempt < maxAttempts - 1) {
+                        attempt++;
+                        return new Promise((resolve) => {
+                            setTimeout(() => {
+                                performRequest().then(resolve).catch(reject);
+                            }, 5000 * attempt);
+                        });
+                    } else {
+                        removeFromLocalStorage(fileKey);
+                        throw error;
+                    }
+                });
+        };
+
+        return performRequest();
     }
 
     sendRecording(channelId, rootId) {
