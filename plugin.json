@@ -4,7 +4,7 @@
     "description": "Mattermost plugin to enable voice messaging.",
     "homepage_url": "https://github.com/streamer45/mattermost-plugin-voice",
     "support_url": "https://github.com/streamer45/mattermost-plugin-voice/issues",
-    "version": "0.3.0",
+    "version": "0.3.2",
     "min_server_version": "6.3.0",
     "server": {
         "executables": {
@@ -25,7 +25,7 @@
                 "display_name": "Max Duration",
                 "type": "number",
                 "help_text": "Max duration allowed (in seconds) for voice messages.",
-                "default": 300
+                "default": 3600
             },
             {
                 "key": "VoiceAudioBitrate",
