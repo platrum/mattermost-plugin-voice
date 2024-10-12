@@ -150,16 +150,18 @@ export default class Client {
 
         const performRequest = () => {
             return postAudioFile(fileToSend).
-                then(fileId => {
+                then((fileId) => {
                     removeFromLocalStorage(fileKey);
                     return postMessage(fileId);
                 }).
-                catch(error => {
+                catch((error) => {
                     if (attempt < maxAttempts - 1) {
                         attempt++;
-                        return new Promise((resolve) => {
+                        return new Promise((resolve, reject) => {
                             setTimeout(() => {
-                                performRequest().then(resolve).catch(reject);
+                                performRequest().
+                                    then(resolve).
+                                    catch(reject);
                             }, 5000 * attempt);
                         });
                     } else {
